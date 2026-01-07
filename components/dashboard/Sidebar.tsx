@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Package, ShoppingCart, Users, FileText, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { signOut } from "next-auth/react";
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -59,7 +60,10 @@ export default function Sidebar() {
 
       {/* Footer / Logout */}
       <div className="p-6 border-t border-white/20">
-        <button className="flex items-center gap-3 text-sm font-medium opacity-80 hover:opacity-100 transition-opacity w-full">
+        <button 
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex items-center gap-3 text-sm font-medium opacity-80 hover:opacity-100 transition-opacity w-full text-white"
+        >
           <LogOut className="w-5 h-5" />
           <span>Sign Out</span>
         </button>

@@ -9,13 +9,14 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProducts } from "@/hooks/useProducts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import ProductForm from "@/components/dashboard/ProductForm";
+import ProductView from "@/components/dashboard/ProductView";
 import { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -36,18 +37,23 @@ interface Product {
 export default function DashboardPage() {
   const { data: products, isLoading, isError, refetch } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // State for editing
+  const [isViewOpen, setIsViewOpen] = useState(false); // 2. New State for View Modal
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // Open modal for CREATING
   const handleCreate = () => {
-    setSelectedProduct(null); // Clear previous data
+    setSelectedProduct(null);
     setIsModalOpen(true);
   };
 
-  // Open modal for EDITING
   const handleEdit = (product: Product) => {
-    setSelectedProduct(product); // Set data to edit
+    setSelectedProduct(product);
     setIsModalOpen(true);
+  };
+
+  // 3. New function to handle View
+  const handleView = (product: Product) => {
+    setSelectedProduct(product);
+    setIsViewOpen(true);
   };
 
   const handleSuccess = () => {
@@ -151,12 +157,14 @@ export default function DashboardPage() {
                   </td>
                   <td className="p-4">
                     <div className="flex gap-2">
-                      {/* EDIT BUTTON (Pencil) */}
                       <button onClick={() => handleEdit(item)} className="p-2 bg-gray-50 hover:bg-gray-200 rounded-lg text-gray-600 transition-all hover:scale-110">
                         <Pencil className="w-4 h-4" />
                       </button>
                       
-                      <button className="p-2 bg-gray-50 hover:bg-gray-200 rounded-lg text-gray-600 transition-all hover:scale-110"><Eye className="w-4 h-4" /></button>
+                      {/* 4. EYE BUTTON (View) - Added onClick */}
+                      <button onClick={() => handleView(item)} className="p-2 bg-gray-50 hover:bg-gray-200 rounded-lg text-gray-600 transition-all hover:scale-110">
+                        <Eye className="w-4 h-4" />
+                      </button>
                       
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -182,20 +190,36 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-white rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              {selectedProduct ? "Edit Product" : "Add New Product"}
-            </DialogTitle>
-          </DialogHeader>
-          <ProductForm 
-            initialData={selectedProduct} // Pass data here
-            onSuccess={handleSuccess} 
-            onCancel={() => setIsModalOpen(false)} 
-          />
-        </DialogContent>
-      </Dialog>
+      {/* ADD/EDIT MODAL */}
+<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+  <DialogContent className="sm:max-w-[600px] bg-white rounded-xl">
+    <DialogHeader>
+      <DialogTitle className="text-xl font-bold">
+        {selectedProduct ? "Edit Product" : "Add New Product"}
+      </DialogTitle>
+      {/* ✅ FIX: Add this line */}
+      <DialogDescription className="sr-only">Fill out the form to manage products.</DialogDescription>
+    </DialogHeader>
+    <ProductForm initialData={selectedProduct} onSuccess={handleSuccess} onCancel={() => setIsModalOpen(false)} />
+  </DialogContent>
+</Dialog>
+
+{/* VIEW PRODUCT MODAL */}
+<Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+  <DialogContent className="sm:max-w-[500px] bg-white rounded-2xl">
+    <DialogHeader>
+      <DialogTitle className="text-xl font-bold">Product Preview</DialogTitle>
+      {/* ✅ FIX: Add this line */}
+      <DialogDescription className="sr-only">Detailed view of the selected product.</DialogDescription>
+    </DialogHeader>
+    {selectedProduct && <ProductView product={selectedProduct} />}
+    <div className="flex justify-end mt-4">
+       <Button onClick={() => setIsViewOpen(false)} className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-none rounded-xl font-semibold">
+         Close
+       </Button>
+    </div>
+  </DialogContent>
+</Dialog>
     </div>
   );
 }

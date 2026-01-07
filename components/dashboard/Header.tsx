@@ -4,6 +4,7 @@ import { Bell, Search, Menu } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -14,6 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function Header() {
+    const { data: session } = useSession(); // 2. Get session data
+
   return (
     <header className="h-[72px] bg-white border-b flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-40">
       {/* Left: Mobile Toggle & Title */}
@@ -46,8 +49,13 @@ export default function Header() {
         {/* User Menu */}
         <div className="flex items-center gap-3 border-l pl-4 md:pl-6">
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-gray-700">Admin User</p>
-            <p className="text-xs text-gray-500">Super Admin</p>
+            {/* 3. Use real session data */}
+            <p className="text-sm font-semibold text-gray-700">
+              {session?.user?.name || "Admin User"}
+            </p>
+            <p className="text-xs text-gray-500 capitalize">
+              {(session?.user?.role || "User")}
+            </p>
           </div>
           
           <DropdownMenu>
