@@ -9,15 +9,17 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProducts } from "@/hooks/useProducts";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from "@/components/ui/dialog"; // Import Dialog
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import ProductForm from "@/components/dashboard/ProductForm";
 import { useState } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import Link from "next/link";
 
 interface Product {
   id: string;
@@ -28,16 +30,39 @@ interface Product {
   stock: number;
   imageUrl?: string | null;
   status: string;
+  description?: string | null;
 }
 
 export default function DashboardPage() {
   const { data: products, isLoading, isError, refetch } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // State for editing
 
-  // Helper to close modal and refresh data
+  // Open modal for CREATING
+  const handleCreate = () => {
+    setSelectedProduct(null); // Clear previous data
+    setIsModalOpen(true);
+  };
+
+  // Open modal for EDITING
+  const handleEdit = (product: Product) => {
+    setSelectedProduct(product); // Set data to edit
+    setIsModalOpen(true);
+  };
+
   const handleSuccess = () => {
     setIsModalOpen(false);
-    refetch(); // Reload the table data!
+    refetch();
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await axios.delete(`/api/products/${id}`);
+      toast.success("Product deleted successfully");
+      refetch();
+    } catch (error) {
+      toast.error("Failed to delete product");
+    }
   };
 
   return (
@@ -54,21 +79,21 @@ export default function DashboardPage() {
       <div className="bg-white p-6 rounded-[15px] shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
         <h2 className="text-xl font-bold text-[#333] mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Quick Action: Add Product (Opens Modal) */}
-          <div onClick={() => setIsModalOpen(true)} className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[#667eea] bg-[#667eea]/5 rounded-xl cursor-pointer hover:bg-[#667eea]/10 hover:-translate-y-1 transition-all duration-300 group h-full">
+          <div onClick={handleCreate} className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[#667eea] bg-[#667eea]/5 rounded-xl cursor-pointer hover:bg-[#667eea]/10 hover:-translate-y-1 transition-all duration-300 group h-full">
             <Plus className="w-6 h-6 text-[#667eea] mb-2 group-hover:scale-110 transition-transform" />
             <span className="font-semibold text-[#667eea] text-sm md:text-base text-center">Add New Product</span>
           </div>
-
           {[
-            { label: "Create Blog Post", icon: FileText },
-            { label: "Send Newsletter", icon: Mail },
-            { label: "View Reports", icon: BarChart },
+            { label: "Create Blog Post", icon: FileText, href: "#" },
+            { label: "Send Newsletter", icon: Mail, href: "#" },
+            { label: "View Reports", icon: BarChart, href: "#" },
           ].map((action, i) => (
-            <div key={i} className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[#667eea] bg-[#667eea]/5 rounded-xl cursor-pointer hover:bg-[#667eea]/10 hover:-translate-y-1 transition-all duration-300 group h-full">
-              <action.icon className="w-6 h-6 text-[#667eea] mb-2 group-hover:scale-110 transition-transform" />
-              <span className="font-semibold text-[#667eea] text-sm md:text-base text-center">{action.label}</span>
-            </div>
+            <Link key={i} href={action.href} className="block h-full">
+              <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[#667eea] bg-[#667eea]/5 rounded-xl cursor-pointer hover:bg-[#667eea]/10 hover:-translate-y-1 transition-all duration-300 group h-full">
+                <action.icon className="w-6 h-6 text-[#667eea] mb-2 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-[#667eea] text-sm md:text-base text-center">{action.label}</span>
+              </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -82,11 +107,8 @@ export default function DashboardPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input placeholder="Search products..." className="pl-10 border-2 border-[#e8ecf1] rounded-xl focus-visible:ring-[#667eea]" />
             </div>
-            
             <Button className="bg-[#f5f7fa] text-gray-700 hover:bg-gray-200 border-none rounded-xl font-semibold">Filter</Button>
-            
-            {/* Primary Add Button (Opens Modal) */}
-            <Button onClick={() => setIsModalOpen(true)} className="bg-gradient-to-r from-[#667eea] to-[#764ba2] hover:opacity-90 text-white border-none rounded-xl font-semibold shadow-lg shadow-indigo-200">
+            <Button onClick={handleCreate} className="bg-gradient-to-r from-[#667eea] to-[#764ba2] hover:opacity-90 text-white border-none rounded-xl font-semibold shadow-lg shadow-indigo-200">
               + Add Product
             </Button>
           </div>
@@ -129,9 +151,28 @@ export default function DashboardPage() {
                   </td>
                   <td className="p-4">
                     <div className="flex gap-2">
-                      <button className="p-2 bg-gray-50 hover:bg-gray-200 rounded-lg text-gray-600 transition-all hover:scale-110"><Pencil className="w-4 h-4" /></button>
+                      {/* EDIT BUTTON (Pencil) */}
+                      <button onClick={() => handleEdit(item)} className="p-2 bg-gray-50 hover:bg-gray-200 rounded-lg text-gray-600 transition-all hover:scale-110">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      
                       <button className="p-2 bg-gray-50 hover:bg-gray-200 rounded-lg text-gray-600 transition-all hover:scale-110"><Eye className="w-4 h-4" /></button>
-                      <button className="p-2 bg-gray-50 hover:bg-red-100 rounded-lg text-red-500 transition-all hover:scale-110"><Trash2 className="w-4 h-4" /></button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="p-2 bg-gray-50 hover:bg-red-100 rounded-lg text-red-500 transition-all hover:scale-110"><Trash2 className="w-4 h-4" /></button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-white">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>This will permanently delete <b>{item.name}</b>. This action cannot be undone.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-red-500 hover:bg-red-600">Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </td>
                 </tr>
@@ -141,13 +182,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* THE MODAL */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px] bg-white rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Add New Product</DialogTitle>
+            <DialogTitle className="text-xl font-bold">
+              {selectedProduct ? "Edit Product" : "Add New Product"}
+            </DialogTitle>
           </DialogHeader>
-          <ProductForm onSuccess={handleSuccess} onCancel={() => setIsModalOpen(false)} />
+          <ProductForm 
+            initialData={selectedProduct} // Pass data here
+            onSuccess={handleSuccess} 
+            onCancel={() => setIsModalOpen(false)} 
+          />
         </DialogContent>
       </Dialog>
     </div>
